@@ -1,0 +1,5 @@
+FROM localhost/dev:latest
+
+RUN dnf -y install \
+        java-latest-openjdk-devel \
+    && dnf clean all

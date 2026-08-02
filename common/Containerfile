@@ -1,0 +1,8 @@
+FROM registry.fedoraproject.org/fedora-toolbox:44
+
+RUN dnf -y install \
+        vim-enhanced \
+        wl-clipboard \
+    && dnf clean all
+
+RUN ln -sf /usr/bin/vim /usr/bin/vi
