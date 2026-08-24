@@ -84,6 +84,32 @@ distrobox create --name devj --image localhost/devj:latest --volume /home/linuxb
 - **Declared**: edit the relevant `Containerfile` `dnf install` line, then
   `./build.sh` (or `./rebuild.sh`) to bake it into the image.
 
+## uv Python install dir permission
+
+`uv` is pointed at the container-local path via
+`ENV UV_PYTHON_INSTALL_DIR=/usr/local/share/uv-python`, so `uv python install`
+writes into the image layer instead of the host-mounted `$HOME`.
+
+Because that path is baked into the image (and `uv python install` runs as
+**root** during the build), the directory ends up **root-owned**. At runtime the
+container runs as the host user (`andy`, uid/gid 1000), so any later
+`uv python install <ver>` (e.g. the free-threaded `3.14t`) fails with:
+
+```
+error: Failed to create Python minor version link directory
+  Caused by: Permission denied (os error 13)
+```
+
+The fix is baked into the `dev/Containerfile`: after installing the baked-in
+Pythons, `chown -R 1000:1000 /usr/local/share/uv-python` makes the directory
+writable by the runtime user. Use the **numeric uid/gid** here, not the
+`andy` username, because the distrobox user is created at runtime and does not
+exist in `/etc/passwd` during the image build.
+
+The `3.14t` free-threaded Python is deliberately *not* baked in — it's used as
+a runtime test to confirm a fresh `uv python install` succeeds inside the
+container after recreation.
+
 ## Why Containerfile instead of ini hooks
 
 The original approach ran `additional_packages` / `init_hooks` per container,

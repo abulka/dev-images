@@ -10,4 +10,5 @@ RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 ENV BUN_INSTALL=/usr/local
 
 ENV UV_PYTHON_INSTALL_DIR=/usr/local/share/uv-python
-RUN uv python install 3.11 3.13
+RUN uv python install 3.11 3.13 \
+    && chown -R 1000:1000 /usr/local/share/uv-python
