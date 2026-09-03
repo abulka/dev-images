@@ -24,7 +24,7 @@ all of dev's layers; only the Java layer is extra).
 | Image | FROM | Adds |
 |---|---|---|
 | `localhost/dev-common:latest` | `fedora-toolbox:44` | `vim-enhanced`, `wl-clipboard`, `vi -> vim` link |
-| `localhost/dev:latest` | `localhost/dev-common:latest` | `nodejs20`, `uv`, `golang`, bun (`/usr/local/bin`), uv Python 3.11 + 3.13 |
+| `localhost/dev:latest` | `localhost/dev-common:latest` | `nodejs24`, `uv`, `golang`, bun (`/usr/local/bin`), uv Python 3.11 + 3.13 |
 | `localhost/devj:latest` | `localhost/dev:latest` | `java-latest-openjdk-devel` |
 
 Notes:
@@ -83,6 +83,30 @@ distrobox create --name devj --image localhost/devj:latest --volume /home/linuxb
   in the container's writable layer; lost if the container is recreated.
 - **Declared**: edit the relevant `Containerfile` `dnf install` line, then
   `./build.sh` (or `./rebuild.sh`) to bake it into the image.
+
+### Ad-hoc major Node upgrade (e.g. nodejs20 → nodejs24)
+
+On Fedora 44 the versioned `nodejsNN` packages coexist, and the unversioned
+`/usr/bin/node` / `/usr/bin/npm` are alternatives managed by `-bin` packages
+(`nodejs20-bin`, `nodejs20-npm-bin`, …). To switch majors without rebuilding:
+
+```bash
+distrobox enter dev
+sudo dnf install --allowerasing nodejs24     # installs new major + its -bin/-npm-bin
+sudo dnf swap --allowerasing nodejs20-bin nodejs24-bin
+sudo dnf swap --allowerasing nodejs20-npm-bin nodejs24-npm-bin
+node -v && npm -v                            # expect v24.x / npm 11.x
+```
+
+`--allowerasing` lets the new `-bin` packages take over `/usr/bin/node` while the
+old main package (e.g. `nodejs20`) can stay installed — different `libnode.so`
+sonames and versioned `node-20`/`node-24` binaries keep them apart.
+
+Keep it durable: the image still installs the old stream, so also update the
+`dnf install` line in `dev/Containerfile` (and the image-chain table above) to
+`nodejs24`. Otherwise a future `./build.sh` / container recreate reverts to the
+baked-in version. For a pure-JS project, `rm -rf node_modules && npm ci` after
+the switch is the safe play (npm major changed).
 
 ## uv Python install dir permission
 

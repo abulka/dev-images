@@ -1,7 +1,7 @@
 FROM localhost/dev-common:latest
 
 RUN dnf -y install \
-        nodejs20 \
+        nodejs24 \
         uv \
         golang \
     && dnf clean all
